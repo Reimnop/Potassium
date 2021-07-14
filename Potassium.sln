@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30717.126
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Potassium", "Potassium.csproj", "{D9F977C8-4F01-40E7-B61A-A735B202FBC1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D9F977C8-4F01-40E7-B61A-A735B202FBC1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D9F977C8-4F01-40E7-B61A-A735B202FBC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D9F977C8-4F01-40E7-B61A-A735B202FBC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D9F977C8-4F01-40E7-B61A-A735B202FBC1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {ACADA684-17AF-4E48-8998-B652A4A8D57B}
+	EndGlobalSection
+EndGlobal
