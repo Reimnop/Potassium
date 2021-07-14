@@ -10,3 +10,5 @@ The mod is finished, but most likely bugs. If you encounter any bugs, please ope
 Checkpoints
 
 Editor
+
+Parent offset
