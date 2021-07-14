@@ -1,2 +1,2 @@
 # Potassium
- A optimization mod for Project Arrhythmia
+ An optimization mod for Project Arrhythmia
