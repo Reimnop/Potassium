@@ -21,6 +21,6 @@ The mod is unfinished and it most likely bugs. If you encounter any bugs, please
 # Unimplemented features
 Checkpoints
 
-Editor
+Editor (Implemented in unstable build)
 
 Parent offset (Implemented in unstable build)
