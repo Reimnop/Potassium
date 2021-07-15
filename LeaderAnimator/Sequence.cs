@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 namespace LeaderAnimator
 {
@@ -38,7 +39,7 @@ namespace LeaderAnimator
 
         public Sequence(Keyframe[] keyframes, int count)
         {
-            this.keyframes = keyframes;
+            this.keyframes = keyframes.OrderBy(x => x.Time).ToArray();
             this.count = count;
 
             currentValues = new float[count];
