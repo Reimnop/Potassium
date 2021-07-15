@@ -50,6 +50,9 @@ namespace Potassium
         [HarmonyPrefix]
         public static bool UpdatePrefix()
         {
+            if (EditorManager.inst != null && EditorManager.inst.isEditing)
+                return true;
+
             if (DataManager.inst.gameData.beatmapObjects.Count == 0)
                 return false;
 
