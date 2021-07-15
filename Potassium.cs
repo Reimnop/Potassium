@@ -9,9 +9,9 @@ namespace Potassium
     public class Potassium : BaseUnityPlugin
     {
         public const string
-            Name = "Potassium",
+            Name = "Potassium (UNSTABLE)",
             Guid = "org.reimnop.potassium",
-            Version = "1.0.1 - UNSTABLE";
+            Version = "1.0.1";
 
         private void Awake()
         {
