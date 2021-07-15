@@ -7,6 +7,10 @@ namespace Potassium.Threading
     public class Worker : IDisposable
     {
         public bool Finished => _finished;
+        public bool Running => _running;
+
+        public bool ExceptionThrown => _exceptionThrown;
+        public Exception ThrownException => _thrownException;
 
         private Thread _thread;
         private Queue<Action> _workQueue = new Queue<Action>();
@@ -16,6 +20,9 @@ namespace Potassium.Threading
         private bool _running = true;
 
         private ManualResetEvent _manualResetEvent = new ManualResetEvent(false);
+
+        private bool _exceptionThrown = false;
+        private Exception _thrownException = null;
 
         public Worker()
         {
@@ -33,7 +40,16 @@ namespace Potassium.Threading
                 _manualResetEvent.WaitOne();
                 if (_workQueue.Count > 0)
                 {
-                    DoAllWork();
+                    try
+                    {
+                        DoAllWork();
+                    }
+                    catch (Exception e)
+                    {
+                        _exceptionThrown = true;
+                        _thrownException = e;
+                        _running = false;
+                    }
                     _finished = true;
                 }
                 _manualResetEvent.Reset();

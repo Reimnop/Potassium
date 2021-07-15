@@ -8,6 +8,22 @@ namespace LeaderAnimator
         public float Time;
         public float[] Values;
         public Easing Easing;
+
+        public Keyframe DeepCopy()
+        {
+            float[] newValues = new float[Values.Length];
+            for (int i = 0; i < Values.Length; i++)
+            {
+                newValues[i] = Values[i];
+            }
+
+            return new Keyframe
+            {
+                Time = Time,
+                Values = newValues,
+                Easing = Easing
+            };
+        }
     }
 
     public sealed class Sequence
@@ -64,6 +80,18 @@ namespace LeaderAnimator
             }
         }
 
+        public Sequence DeepCopy()
+        {
+            Keyframe[] newKeyframes = new Keyframe[keyframes.Length];
+
+            for (int i = 0; i < keyframes.Length; i++)
+            {
+                newKeyframes[i] = keyframes[i].DeepCopy();
+            }
+
+            return new Sequence(newKeyframes, count);
+        }
+
         private float Lerp(float x, float y, float t)
         {
             return x * (1 - t) + y * t;
@@ -77,25 +105,48 @@ namespace LeaderAnimator
 
         private void FindClosestPair(float time, out Keyframe start, out Keyframe end)
         {
-            if (time >= lastTime)
+            start = default;
+            end = default;
+
+            int index = lastIndex;
+
+            if (keyframes[index].Time <= time && keyframes[index + 1].Time > time)
             {
-                while (time >= keyframes[lastIndex + 1].Time)
-                {
-                    lastIndex++;
-                }
-                start = keyframes[lastIndex];
-                end = keyframes[lastIndex + 1];
+                start = keyframes[index];
+                end = keyframes[index + 1];
             }
             else
             {
-                while (time < keyframes[lastIndex].Time)
+                if (time >= lastTime) //forward
                 {
-                    lastIndex--;
+                    for (int i = index + 1; i < keyframes.Length - 1; i++)
+                    {
+                        if (keyframes[i + 1].Time > time)
+                        {
+                            index = i;
+                            start = keyframes[i];
+                            end = keyframes[i + 1];
+                            break;
+                        }
+                    }
                 }
-                start = keyframes[lastIndex];
-                end = keyframes[lastIndex + 1];
+                else //reverse
+                {
+                    for (int i = index - 1; i >= 0; i--)
+                    {
+                        if (keyframes[i].Time <= time)
+                        {
+                            index = i;
+                            start = keyframes[i];
+                            end = keyframes[i + 1];
+                            break;
+                        }
+                    }
+                }
             }
+
             lastTime = time;
+            lastIndex = index;
         }
     }
 }

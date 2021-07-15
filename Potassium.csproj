@@ -71,10 +71,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ObjectActionType.cs" />
     <Compile Include="GameManagerPatcher.cs" />
     <Compile Include="LeaderAnimator\ColorSequence.cs" />
     <Compile Include="LeaderAnimator\Ease.cs" />
     <Compile Include="LeaderAnimator\Sequence.cs" />
+    <Compile Include="LevelObjectAction.cs" />
     <Compile Include="LevelObjectRef.cs" />
     <Compile Include="ObjectManagerPatcher.cs" />
     <Compile Include="ParentObjectRef.cs" />

@@ -1,4 +1,6 @@
-﻿using System;
+﻿using BepInEx.Logging;
+using System;
+using UnityEngine.Diagnostics;
 
 namespace Potassium.Threading
 {
@@ -10,6 +12,8 @@ namespace Potassium.Threading
 
         private static Worker[] _workers;
 
+        private static ManualLogSource _logSource;
+
         public static void InitWorkers(int numWorkers)
         {
             _numWorkers = numWorkers;
@@ -19,6 +23,8 @@ namespace Potassium.Threading
             {
                 _workers[i] = new Worker();
             }
+
+            _logSource = Logger.CreateLogSource("Threading");
         }
 
         public static void QueueWorker(int workerIndex, Action action)
@@ -38,7 +44,20 @@ namespace Potassium.Threading
         {
             for (int i = 0; i < _numWorkers; i++)
             {
-                if (!_workers[i].Finished)
+                Worker worker = _workers[i];
+
+                if (!worker.Running && worker.ExceptionThrown)
+                {
+                    _logSource.LogError($"Exception thrown on worker {i}: {worker.ThrownException.Message}");
+                    _logSource.LogError($"Stack trace: {worker.ThrownException.StackTrace}");
+                    Utils.ForceCrash(ForcedCrashCategory.Abort);
+                }
+                else if (!worker.Running)
+                {
+                    continue;
+                }
+
+                if (!worker.Finished)
                 {
                     return false;
                 }
