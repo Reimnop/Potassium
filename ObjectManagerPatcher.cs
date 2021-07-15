@@ -42,11 +42,9 @@ namespace Potassium
         private static Dictionary<string, SequencesPair> sequencesLookup;
 
         private static List<LevelObjectRef> levelObjects;
-
         private static List<LevelObjectRef> aliveObjects;
 
-        private static int objIndex = 0;
-        private static int seqIndex = 0;
+        private static int index = 0;
 
         [HarmonyPatch("Update")]
         [HarmonyPrefix]
@@ -58,13 +56,13 @@ namespace Potassium
             float time = AudioManager.inst.CurrentAudioSource.time;
 
             //spawn objects
-            while (objIndex < levelObjects.Count && levelObjects[objIndex].StartTime < time)
+            while (index < levelObjects.Count && levelObjects[index].StartTime < time)
             {
-                LevelObjectRef levelObject = levelObjects[objIndex];
+                LevelObjectRef levelObject = levelObjects[index];
                 levelObject.VisualTransform.gameObject.SetActive(true);
 
                 aliveObjects.Add(levelObject);
-                objIndex++;
+                index++;
             }
 
             //multithreaded update
@@ -183,8 +181,7 @@ namespace Potassium
 
         public static void InitLevel()
         {
-            objIndex = 0;
-            seqIndex = 0;
+            index = 0;
 
             sequencesLookup = new Dictionary<string, SequencesPair>();
 
