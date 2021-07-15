@@ -12,6 +12,10 @@ namespace Potassium
 
         public float LocalDepth;
 
+        public float PositionOffset;
+        public float ScaleOffset;
+        public float RotationOffset;
+
         public Sequence PositionSequence;
         public Sequence ScaleSequence;
         public Sequence RotationSequence;

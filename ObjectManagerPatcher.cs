@@ -2,7 +2,6 @@
 using LeaderAnimator;
 using Potassium.Threading;
 using System.Collections.Generic;
-using System.Linq;
 using TMPro;
 using UnityEngine;
 
@@ -41,12 +40,10 @@ namespace Potassium
         public static Dictionary<string, DataManager.GameData.BeatmapObject> BeatmapObjectsLookup;
 
         private static Dictionary<string, SequencesPair> sequencesLookup;
-        private static List<SequencesPair> sequencesPairs;
 
         private static List<LevelObjectRef> levelObjects;
 
         private static List<LevelObjectRef> aliveObjects;
-        private static List<SequencesPair> aliveSequences;
 
         private static int objIndex = 0;
         private static int seqIndex = 0;
@@ -59,13 +56,6 @@ namespace Potassium
                 return false;
 
             float time = AudioManager.inst.CurrentAudioSource.time;
-
-            //spawn sequences
-            while (seqIndex < sequencesPairs.Count && sequencesPairs[seqIndex].ObjectStartTime < time)
-            {
-                aliveSequences.Add(sequencesPairs[seqIndex]);
-                seqIndex++;
-            }
 
             //spawn objects
             while (objIndex < levelObjects.Count && levelObjects[objIndex].StartTime < time)
@@ -81,25 +71,13 @@ namespace Potassium
             int workers = ThreadManager.NumberOfWorkers;
             for (int i = 0; i < workers; i++)
             {
-                int startSeq = (int)Mathf.Lerp(0f, aliveSequences.Count, i / (float)workers);
-                int endSeq = (int)Mathf.Lerp(0f, aliveSequences.Count, (i + 1) / (float)workers);
-
-                int startObj = (int)Mathf.Lerp(0f, aliveObjects.Count, i / (float)workers);
-                int endObj = (int)Mathf.Lerp(0f, aliveObjects.Count, (i + 1) / (float)workers);
+                int start = (int)Mathf.Lerp(0f, aliveObjects.Count, i / (float)workers);
+                int end = (int)Mathf.Lerp(0f, aliveObjects.Count, (i + 1) / (float)workers);
                 
                 ThreadManager.QueueWorker(i, () =>
                 {
-                    //update sequences
-                    for (int j = startSeq; j < endSeq; j++)
-                    {
-                        SequencesPair sequencesPair = aliveSequences[j];
-                        sequencesPair.PositionSequence.Update(time - sequencesPair.ObjectStartTime);
-                        sequencesPair.ScaleSequence.Update(time - sequencesPair.ObjectStartTime);
-                        sequencesPair.RotationSequence.Update(time - sequencesPair.ObjectStartTime);
-                    }
-
                     //update objects
-                    for (int j = startObj; j < endObj; j++)
+                    for (int j = start; j < end; j++)
                     {
                         LevelObjectRef levelObject = aliveObjects[j];
 
@@ -124,36 +102,14 @@ namespace Potassium
                             }
                         }
 
-                        //update parents' transforms
-                        foreach (ParentObjectRef parentObject in levelObject.Parents)
-                        {
-                            Sequence pPos = parentObject.PositionSequence;
-                            Sequence pSca = parentObject.ScaleSequence;
-                            Sequence pRot = parentObject.RotationSequence;
-
-                            if (pPos != null)
-                            {
-                                float[] pPosValues = pPos.GetValues();
-                                parentObject.ObjectTransform.localPosition = new Vector3(pPosValues[0], pPosValues[1], parentObject.LocalDepth);
-                            }
-
-                            if (pSca != null)
-                            {
-                                float[] pScaValues = pSca.GetValues();
-                                parentObject.ObjectTransform.localScale = new Vector3(pScaValues[0], pScaValues[1], 1f);
-                            }
-
-                            if (pRot != null)
-                            {
-                                float[] pRotValues = pRot.GetValues();
-                                parentObject.ObjectTransform.localEulerAngles = new Vector3(0f, 0f, pRotValues[0]);
-                            }
-                        }
-
                         //update object transform
                         Sequence pos = levelObject.PositionSequence;
                         Sequence sca = levelObject.ScaleSequence;
                         Sequence rot = levelObject.RotationSequence;
+
+                        pos.Update(time - levelObject.StartTime);
+                        sca.Update(time - levelObject.StartTime);
+                        rot.Update(time - levelObject.StartTime);
 
                         float[] posValues = pos.GetValues();
                         float[] scaValues = sca.GetValues();
@@ -162,6 +118,45 @@ namespace Potassium
                         levelObject.BaseTransform.localPosition = new Vector3(posValues[0], posValues[1], beatmapObject.Depth * 0.1f);
                         levelObject.BaseTransform.localScale = new Vector3(scaValues[0], scaValues[1], 1f);
                         levelObject.BaseTransform.localEulerAngles = new Vector3(0f, 0f, rotValues[0]);
+
+                        float posOffset = beatmapObject.getParentOffset(0);
+                        float scaOffset = beatmapObject.getParentOffset(1);
+                        float rotOffset = beatmapObject.getParentOffset(2);
+
+                        //update parents' transforms
+                        for (int k = levelObject.Parents.Count - 1; k >= 0; k--)
+                        {
+                            ParentObjectRef parentObject = levelObject.Parents[k];
+
+                            Sequence pPos = parentObject.PositionSequence;
+                            Sequence pSca = parentObject.ScaleSequence;
+                            Sequence pRot = parentObject.RotationSequence;
+
+                            if (pPos != null)
+                            {
+                                pPos.Update(time - parentObject.StartTime - posOffset);
+                                float[] pPosValues = pPos.GetValues();
+                                parentObject.ObjectTransform.localPosition = new Vector3(pPosValues[0], pPosValues[1], parentObject.LocalDepth);
+                            }
+
+                            if (pSca != null)
+                            {
+                                pSca.Update(time - parentObject.StartTime - scaOffset);
+                                float[] pScaValues = pSca.GetValues();
+                                parentObject.ObjectTransform.localScale = new Vector3(pScaValues[0], pScaValues[1], 1f);
+                            }
+
+                            if (pRot != null)
+                            {
+                                pRot.Update(time - parentObject.StartTime - rotOffset);
+                                float[] pRotValues = pRot.GetValues();
+                                parentObject.ObjectTransform.localEulerAngles = new Vector3(0f, 0f, pRotValues[0]);
+                            }
+
+                            posOffset += parentObject.PositionOffset;
+                            scaOffset += parentObject.ScaleOffset;
+                            rotOffset += parentObject.RotationOffset;
+                        }
                     }
                 });
             }
@@ -171,16 +166,6 @@ namespace Potassium
 
             //wait until all done
             while (!ThreadManager.AllDone()) ;
-
-            //kill sequences
-            for (int i = 0; i < aliveSequences.Count; i++)
-            {
-                SequencesPair sequencesPair = aliveSequences[i];
-                if (sequencesPair.ObjectKillTime < time)
-                {
-                    aliveSequences.RemoveAt(i);
-                }
-            }
 
             //kill objects
             for (int i = 0; i < aliveObjects.Count; i++)
@@ -204,8 +189,6 @@ namespace Potassium
             sequencesLookup = new Dictionary<string, SequencesPair>();
 
             aliveObjects = new List<LevelObjectRef>();
-            aliveSequences = new List<SequencesPair>();
-
             levelObjects = new List<LevelObjectRef>();
 
             foreach (DataManager.GameData.BeatmapObject beatmapObject in BeatmapObjectsLookup.Values)
@@ -220,8 +203,6 @@ namespace Potassium
                 });
             }
 
-            sequencesPairs = sequencesLookup.Values.ToList();
-
             foreach (DataManager.GameData.BeatmapObject beatmapObject in BeatmapObjectsLookup.Values)
             {
                 if (beatmapObject.objectType != DataManager.GameData.BeatmapObject.ObjectType.Empty)
@@ -231,7 +212,6 @@ namespace Potassium
             }
 
             levelObjects.Sort((x, y) => x.StartTime.CompareTo(y.StartTime));
-            sequencesPairs.Sort((x, y) => x.ObjectStartTime.CompareTo(y.ObjectStartTime));
         }
 
         private static void InitObjectTree(DataManager.GameData.BeatmapObject beatmapObject)
@@ -364,6 +344,9 @@ namespace Potassium
                 StartTime = beatmapObject.StartTime,
                 KillTime = beatmapObject.StartTime + beatmapObject.GetObjectLifeLength(0f, true),
                 LocalDepth = baseBeatmapObject.Depth * 0.0005f,
+                PositionOffset = beatmapObject.getParentOffset(0),
+                ScaleOffset = beatmapObject.getParentOffset(1),
+                RotationOffset = beatmapObject.getParentOffset(2),
                 PositionSequence = animPos ? sequences.PositionSequence : null,
                 ScaleSequence = animSca ? sequences.ScaleSequence : null,
                 RotationSequence = animRot ? sequences.RotationSequence : null
