@@ -417,6 +417,7 @@ namespace Potassium
         private static Sequence GetPositionSequence(DataManager.GameData.BeatmapObject beatmapObject)
         {
             List<DataManager.GameData.EventKeyframe> posEvents = beatmapObject.events[0];
+            posEvents.Sort((x, y) => x.eventTime.CompareTo(y.eventTime));
             LeaderAnimator.Keyframe[] posKfs = new LeaderAnimator.Keyframe[posEvents.Count];
 
             for (int i = 0; i < posEvents.Count; i++)
@@ -447,6 +448,7 @@ namespace Potassium
         private static Sequence GetScaleSequence(DataManager.GameData.BeatmapObject beatmapObject)
         {
             List<DataManager.GameData.EventKeyframe> scaEvents = beatmapObject.events[1];
+            scaEvents.Sort((x, y) => x.eventTime.CompareTo(y.eventTime));
             LeaderAnimator.Keyframe[] scaKfs = new LeaderAnimator.Keyframe[scaEvents.Count];
 
             for (int i = 0; i < scaEvents.Count; i++)
@@ -477,6 +479,7 @@ namespace Potassium
         private static Sequence GetRotationSequence(DataManager.GameData.BeatmapObject beatmapObject)
         {
             List<DataManager.GameData.EventKeyframe> rotEvents = beatmapObject.events[2];
+            rotEvents.Sort((x, y) => x.eventTime.CompareTo(y.eventTime));
             LeaderAnimator.Keyframe[] rotKfs = new LeaderAnimator.Keyframe[rotEvents.Count];
 
             float lastRot = 0f;
@@ -509,6 +512,7 @@ namespace Potassium
         private static ColorSequence GetColorSequence(DataManager.GameData.BeatmapObject beatmapObject)
         {
             List<DataManager.GameData.EventKeyframe> colEvents = beatmapObject.events[3];
+            colEvents.Sort((x, y) => x.eventTime.CompareTo(y.eventTime));
             ColorKeyframe[] colKfs = new ColorKeyframe[colEvents.Count];
 
             for (int i = 0; i < colKfs.Length; i++)
