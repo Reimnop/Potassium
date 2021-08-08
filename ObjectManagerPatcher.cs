@@ -84,9 +84,9 @@ namespace Potassium
             }
             else //reverse
             {
-                while (index > 0 && objectActions[index].Time >= time)
+                while (index > 0 && objectActions[index - 1].Time >= time)
                 {
-                    LevelObjectAction objectAction = objectActions[index];
+                    LevelObjectAction objectAction = objectActions[index - 1];
                     if (objectAction.ActionType == ObjectActionType.Spawn)
                     {
                         objectAction.LevelObject.VisualTransform.gameObject.SetActive(false);
@@ -153,11 +153,7 @@ namespace Potassium
                         levelObject.BaseTransform.localScale = new Vector3(scaValues[0], scaValues[1], 1f);
                         levelObject.BaseTransform.localEulerAngles = new Vector3(0f, 0f, rotValues[0]);
 
-                        float posOffset = beatmapObject.getParentOffset(0);
-                        float scaOffset = beatmapObject.getParentOffset(1);
-                        float rotOffset = beatmapObject.getParentOffset(2);
-
-                        //update parents' transforms
+                        //update parent transforms
                         for (int k = levelObject.Parents.Count - 1; k >= 0; k--)
                         {
                             ParentObjectRef parentObject = levelObject.Parents[k];
@@ -165,6 +161,10 @@ namespace Potassium
                             Sequence pPos = parentObject.PositionSequence;
                             Sequence pSca = parentObject.ScaleSequence;
                             Sequence pRot = parentObject.RotationSequence;
+
+                            float posOffset = parentObject.PositionOffset;
+                            float scaOffset = parentObject.ScaleOffset;
+                            float rotOffset = parentObject.RotationOffset;
 
                             if (pPos != null)
                             {
@@ -186,10 +186,6 @@ namespace Potassium
                                 float[] pRotValues = pRot.GetValues();
                                 parentObject.ObjectTransform.localEulerAngles = new Vector3(0f, 0f, pRotValues[0]);
                             }
-
-                            posOffset += parentObject.PositionOffset;
-                            scaOffset += parentObject.ScaleOffset;
-                            rotOffset += parentObject.RotationOffset;
                         }
                     }
                 });
