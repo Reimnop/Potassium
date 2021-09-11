@@ -232,7 +232,8 @@ namespace Potassium
 
             // For every object, we initialize the entire object tree.
             // We spawn everything at start, with everything being inactive.
-            // Setting a bool is definitely way faster than instantiate and/or pooling, and according to many benchmarks, it also doesn't take a lot of memory.
+            // According to many benchmarks, it also doesn't take a lot of memory.
+            // Setting a bool is definitely way faster than instantiate and/or pooling.
             // Inactive objects has so little performance penalty it's negligible.
             foreach (DataManager.GameData.BeatmapObject beatmapObject in BeatmapObjectsLookup.Values)
             {
