@@ -426,7 +426,7 @@ namespace Potassium
             return currentTransform;
         }
 
-        private static Sequence GetPositionSequence(DataManager.GameData.BeatmapObject beatmapObject)
+        private unsafe static Sequence GetPositionSequence(DataManager.GameData.BeatmapObject beatmapObject)
         {
             List<DataManager.GameData.EventKeyframe> posEvents = beatmapObject.events[0];
             posEvents.Sort((x, y) => x.eventTime.CompareTo(y.eventTime));
@@ -446,18 +446,20 @@ namespace Potassium
                     y = newVec.y;
                 }
 
-                posKfs[i] = new LeaderAnimator.Keyframe()
-                {
-                    Values = new float[] { x, y },
-                    Time = posEvent.eventTime,
-                    Easing = stringToEasings[posEvent.curveType.Name]
-                };
+                LeaderAnimator.Keyframe kf = new LeaderAnimator.Keyframe();
+                kf.Time = posEvent.eventTime;
+                kf.ElementCount = 2;
+                kf.Values[0] = x;
+                kf.Values[1] = y;
+                kf.Easing = stringToEasings[posEvent.curveType.Name];
+
+                posKfs[i] = kf;
             }
 
             return new Sequence(posKfs, 2);
         }
 
-        private static Sequence GetScaleSequence(DataManager.GameData.BeatmapObject beatmapObject)
+        private unsafe static Sequence GetScaleSequence(DataManager.GameData.BeatmapObject beatmapObject)
         {
             List<DataManager.GameData.EventKeyframe> scaEvents = beatmapObject.events[1];
             scaEvents.Sort((x, y) => x.eventTime.CompareTo(y.eventTime));
@@ -477,18 +479,20 @@ namespace Potassium
                     y = newVec.y;
                 }
 
-                scaKfs[i] = new LeaderAnimator.Keyframe()
-                {
-                    Values = new float[] { x, y },
-                    Time = scaEvent.eventTime,
-                    Easing = stringToEasings[scaEvent.curveType.Name]
-                };
+                LeaderAnimator.Keyframe kf = new LeaderAnimator.Keyframe();
+                kf.Time = scaEvent.eventTime;
+                kf.ElementCount = 2;
+                kf.Values[0] = x;
+                kf.Values[1] = y;
+                kf.Easing = stringToEasings[scaEvent.curveType.Name];
+
+                scaKfs[i] = kf;
             }
 
             return new Sequence(scaKfs, 2);
         }
 
-        private static Sequence GetRotationSequence(DataManager.GameData.BeatmapObject beatmapObject)
+        private unsafe static Sequence GetRotationSequence(DataManager.GameData.BeatmapObject beatmapObject)
         {
             List<DataManager.GameData.EventKeyframe> rotEvents = beatmapObject.events[2];
             rotEvents.Sort((x, y) => x.eventTime.CompareTo(y.eventTime));
@@ -508,12 +512,13 @@ namespace Potassium
 
                 x += lastRot;
 
-                rotKfs[i] = new LeaderAnimator.Keyframe()
-                {
-                    Values = new float[] { x },
-                    Time = rotEvent.eventTime,
-                    Easing = stringToEasings[rotEvent.curveType.Name]
-                };
+                LeaderAnimator.Keyframe kf = new LeaderAnimator.Keyframe();
+                kf.Time = rotEvent.eventTime;
+                kf.ElementCount = 1;
+                kf.Values[0] = x;
+                kf.Easing = stringToEasings[rotEvent.curveType.Name];
+
+                rotKfs[i] = kf;
 
                 lastRot = x;
             }

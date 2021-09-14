@@ -1,28 +1,28 @@
 using System;
+using System.Runtime.InteropServices;
 
 namespace LeaderAnimator
 {
     [Serializable]
-    public struct Keyframe
+    public unsafe struct Keyframe
     {
         public float Time;
-        public float[] Values;
+        public int ElementCount;
+        public fixed float Values[16];
         public Easing Easing;
 
         public Keyframe DeepCopy()
         {
-            float[] newValues = new float[Values.Length];
-            for (int i = 0; i < Values.Length; i++)
+            Keyframe kf = new Keyframe();
+
+            kf.Time = Time;
+            kf.Easing = Easing;
+            for (int i = 0; i < ElementCount; i++)
             {
-                newValues[i] = Values[i];
+                kf.Values[i] = Values[i];
             }
 
-            return new Keyframe
-            {
-                Time = Time,
-                Values = newValues,
-                Easing = Easing
-            };
+            return kf;
         }
     }
 
@@ -47,23 +47,32 @@ namespace LeaderAnimator
         public float[] GetValues()
             => currentValues;
 
-        public void Update(float time)
+        public unsafe void Update(float time)
         {
             if (keyframes.Length == 1)
             {
-                DeepCopyArray(keyframes[0].Values);
+                for (int i = 0; i < keyframes[0].ElementCount; i++)
+                {
+                    currentValues[i] = keyframes[0].Values[i];
+                }
                 return;
             }
 
             if (time <= keyframes[0].Time)
             {
-                DeepCopyArray(keyframes[0].Values);
+                for (int i = 0; i < keyframes[0].ElementCount; i++)
+                {
+                    currentValues[i] = keyframes[0].Values[i];
+                }
                 return;
             }
 
             if (time >= keyframes[keyframes.Length - 1].Time)
             {
-                DeepCopyArray(keyframes[keyframes.Length - 1].Values);
+                for (int i = 0; i < keyframes[keyframes.Length - 1].ElementCount; i++)
+                {
+                    currentValues[i] = keyframes[0].Values[i];
+                }
                 return;
             }
 
@@ -95,12 +104,6 @@ namespace LeaderAnimator
         private float Lerp(float x, float y, float t)
         {
             return x * (1 - t) + y * t;
-        }
-
-        private void DeepCopyArray(float[] arr)
-        {
-            for (int i = 0; i < arr.Length; i++)
-                currentValues[i] = arr[i];
         }
 
         private void FindClosestPair(float time, out Keyframe start, out Keyframe end)
