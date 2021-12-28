@@ -44,9 +44,12 @@ namespace Potassium
         private static List<LevelObjectRef> levelObjects;
         private static List<LevelObjectRef> aliveObjects;
 
-        private static List<LevelObjectAction> objectActions;
+        private static List<LevelObjectRef> objectActivateList;
+        private static List<LevelObjectRef> objectDeactivateList;
 
-        private static int index;
+        private static int activationIndex;
+        private static int deactivationIndex;
+
         private static float lastAudioTime;
 
         [HarmonyPatch("Update")]
@@ -66,40 +69,37 @@ namespace Potassium
             float timeDelta = time - lastAudioTime;
 
             // We have saved all the objects into one array called ObjectActions in order to always have in order spawn and despawn.
+            // basically copied from Arrhythmia Studio
             if (timeDelta >= 0f) // If time is going in forward direction
             {
-                while (index < objectActions.Count && objectActions[index].Time < time)
+                while (activationIndex < objectActivateList.Count && time >= objectActivateList[activationIndex].StartTime)
                 {
-                    LevelObjectAction objectAction = objectActions[index];
-                    if (objectAction.ActionType == ObjectActionType.Spawn)
-                    {
-                        objectAction.LevelObject.VisualTransform.gameObject.SetActive(true);
-                        aliveObjects.Add(objectAction.LevelObject);
-                    }
-                    else if (objectAction.ActionType == ObjectActionType.Kill)
-                    {
-                        objectAction.LevelObject.VisualTransform.gameObject.SetActive(false);
-                        aliveObjects.Remove(objectAction.LevelObject);
-                    }
-                    index++;
+                    objectActivateList[activationIndex].VisualTransform.gameObject.SetActive(true);
+                    aliveObjects.Add(objectActivateList[activationIndex]);
+                    activationIndex++;
+                }
+
+                while (deactivationIndex < objectDeactivateList.Count && time >= objectDeactivateList[deactivationIndex].KillTime)
+                {
+                    objectDeactivateList[deactivationIndex].VisualTransform.gameObject.SetActive(false);
+                    aliveObjects.Remove(objectDeactivateList[deactivationIndex]);
+                    deactivationIndex++;
                 }
             }
             else // If time is going in backward direction
             {
-                while (index > 0 && objectActions[index - 1].Time >= time)
+                while (deactivationIndex - 1 >= 0 && time < objectDeactivateList[deactivationIndex - 1].KillTime)
                 {
-                    LevelObjectAction objectAction = objectActions[index - 1];
-                    if (objectAction.ActionType == ObjectActionType.Spawn)
-                    {
-                        objectAction.LevelObject.VisualTransform.gameObject.SetActive(false);
-                        aliveObjects.Remove(objectAction.LevelObject);
-                    }
-                    else if (objectAction.ActionType == ObjectActionType.Kill)
-                    {
-                        objectAction.LevelObject.VisualTransform.gameObject.SetActive(true);
-                        aliveObjects.Add(objectAction.LevelObject);
-                    }
-                    index--;
+                    objectDeactivateList[deactivationIndex - 1].VisualTransform.gameObject.SetActive(true);
+                    aliveObjects.Add(objectDeactivateList[deactivationIndex - 1]);
+                    deactivationIndex--;
+                }
+
+                while (activationIndex - 1 >= 0 && time < objectActivateList[activationIndex - 1].StartTime)
+                {
+                    objectActivateList[activationIndex - 1].VisualTransform.gameObject.SetActive(false);
+                    aliveObjects.Remove(objectActivateList[activationIndex - 1]);
+                    activationIndex--;
                 }
             }
 
@@ -158,6 +158,10 @@ namespace Potassium
 
                         // Update the parents' transform
                         // I don't actually know how parent offset works so it might be broken.
+                        float posOffset = -levelObject.BeatmapObject.getParentOffset(0);
+                        float scaOffset = -levelObject.BeatmapObject.getParentOffset(1);
+                        float rotOffset = -levelObject.BeatmapObject.getParentOffset(2);
+
                         for (int k = levelObject.Parents.Count - 1; k >= 0; k--)
                         {
                             ParentObjectRef parentObject = levelObject.Parents[k];
@@ -166,30 +170,30 @@ namespace Potassium
                             Sequence pSca = parentObject.ScaleSequence;
                             Sequence pRot = parentObject.RotationSequence;
 
-                            float posOffset = parentObject.PositionOffset;
-                            float scaOffset = parentObject.ScaleOffset;
-                            float rotOffset = parentObject.RotationOffset;
-
                             if (pPos != null)
                             {
-                                pPos.Update(time - parentObject.StartTime - posOffset);
+                                pPos.Update(time + posOffset - parentObject.StartTime);
                                 float[] pPosValues = pPos.GetValues();
                                 parentObject.ObjectTransform.localPosition = new Vector3(pPosValues[0], pPosValues[1], parentObject.LocalDepth);
                             }
 
                             if (pSca != null)
                             {
-                                pSca.Update(time - parentObject.StartTime - scaOffset);
+                                pSca.Update(time + scaOffset - parentObject.StartTime);
                                 float[] pScaValues = pSca.GetValues();
                                 parentObject.ObjectTransform.localScale = new Vector3(pScaValues[0], pScaValues[1], 1f);
                             }
 
                             if (pRot != null)
                             {
-                                pRot.Update(time - parentObject.StartTime - rotOffset);
+                                pRot.Update(time + rotOffset - parentObject.StartTime);
                                 float[] pRotValues = pRot.GetValues();
                                 parentObject.ObjectTransform.localEulerAngles = new Vector3(0f, 0f, pRotValues[0]);
                             }
+
+                            posOffset = -parentObject.PositionOffset;
+                            scaOffset = -parentObject.ScaleOffset;
+                            rotOffset = -parentObject.RotationOffset;
                         }
                     }
                 });
@@ -207,7 +211,8 @@ namespace Potassium
 
         public static void InitLevel()
         {
-            index = 0;
+            activationIndex = 0;
+            deactivationIndex = 0;
             lastAudioTime = 0f;
 
             sequencesLookup = new Dictionary<string, SequencesPair>();
@@ -215,7 +220,8 @@ namespace Potassium
             aliveObjects = new List<LevelObjectRef>();
             levelObjects = new List<LevelObjectRef>();
 
-            objectActions = new List<LevelObjectAction>();
+            objectActivateList = new List<LevelObjectRef>();
+            objectDeactivateList = new List<LevelObjectRef>();
 
             foreach (DataManager.GameData.BeatmapObject beatmapObject in BeatmapObjectsLookup.Values)
             {
@@ -247,29 +253,16 @@ namespace Potassium
             sequencesLookup.Clear();
             BeatmapObjectsLookup.Clear();
 
-            // Now put all the objects in action
-            // Note that we add a small amount to kill time, this is to ensure that kill time is always > start time.
             for (int i = 0; i < levelObjects.Count; i++)
             {
                 LevelObjectRef levelObject = levelObjects[i];
 
-                objectActions.Add(new LevelObjectAction
-                {
-                    Time = levelObject.StartTime,
-                    ActionType = ObjectActionType.Spawn,
-                    LevelObject = levelObject
-                });
-
-                objectActions.Add(new LevelObjectAction
-                {
-                    Time = levelObject.KillTime + 0.0001f,
-                    ActionType = ObjectActionType.Kill,
-                    LevelObject = levelObject
-                });
+                objectActivateList.Add(levelObject);
+                objectDeactivateList.Add(levelObject);
             }
 
-            // Now sort all the actions
-            objectActions.Sort((x, y) => x.Time.CompareTo(y.Time));
+            objectActivateList.Sort((x, y) => x.StartTime.CompareTo(y.StartTime));
+            objectDeactivateList.Sort((x, y) => x.KillTime.CompareTo(y.KillTime));
         }
 
         private static void InitObjectTree(DataManager.GameData.BeatmapObject beatmapObject)
@@ -285,7 +278,7 @@ namespace Potassium
                 parent = InitObjectParentRecursively(value, beatmapObject, parents, ref pos, ref sca, ref rot);
             }
 
-            Transform baseTransform = UnityEngine.Object.Instantiate(ObjectManager.inst.objectPrefabs[beatmapObject.shape].options[beatmapObject.shapeOption], parent).transform;
+            Transform baseTransform = Object.Instantiate(ObjectManager.inst.objectPrefabs[beatmapObject.shape].options[beatmapObject.shapeOption], parent).transform;
             Transform visualTransform = baseTransform.GetChild(0);
 
             SequencesPair sequences = sequencesLookup[beatmapObject.id];
@@ -340,7 +333,7 @@ namespace Potassium
 
                 if (collider != null)
                 {
-                    UnityEngine.Object.Destroy(collider);
+                    Object.Destroy(collider);
                 }
             }
 

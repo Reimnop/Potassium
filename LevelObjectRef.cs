@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Potassium
 {
-    public struct LevelObjectRef
+    public class LevelObjectRef
     {
         public float StartTime;
         public float KillTime;
