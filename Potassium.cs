@@ -1,6 +1,5 @@
 ﻿using BepInEx;
 using HarmonyLib;
-using Potassium.Threading;
 
 namespace Potassium
 {
@@ -15,8 +14,6 @@ namespace Potassium
 
         private void Awake()
         {
-            ThreadManager.InitWorkers(8);   
-
             Harmony harmony = new Harmony(Guid);
             harmony.PatchAll();
         }

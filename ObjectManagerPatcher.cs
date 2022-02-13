@@ -1,7 +1,7 @@
 ﻿using HarmonyLib;
 using LeaderAnimator;
-using Potassium.Threading;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 
@@ -72,14 +72,16 @@ namespace Potassium
             // basically copied from Arrhythmia Studio
             if (timeDelta >= 0f) // If time is going in forward direction
             {
-                while (activationIndex < objectActivateList.Count && time >= objectActivateList[activationIndex].StartTime)
+                while (activationIndex < objectActivateList.Count &&
+                       time >= objectActivateList[activationIndex].StartTime)
                 {
                     objectActivateList[activationIndex].VisualTransform.gameObject.SetActive(true);
                     aliveObjects.Add(objectActivateList[activationIndex]);
                     activationIndex++;
                 }
 
-                while (deactivationIndex < objectDeactivateList.Count && time >= objectDeactivateList[deactivationIndex].KillTime)
+                while (deactivationIndex < objectDeactivateList.Count &&
+                       time >= objectDeactivateList[deactivationIndex].KillTime)
                 {
                     objectDeactivateList[deactivationIndex].VisualTransform.gameObject.SetActive(false);
                     aliveObjects.Remove(objectDeactivateList[deactivationIndex]);
@@ -105,108 +107,110 @@ namespace Potassium
 
             lastAudioTime = time;
 
-            // We update the objects asynchronously. This is entire optional and can be removed.
-            int workersCount = ThreadManager.NumberOfWorkers;
-            for (int i = 0; i < workersCount; i++)
-            {
-                int workerIndex = i;
-                ThreadManager.QueueWorker(i, () =>
-                {
-                    // Update objects.
-                    // Each thread process a different subset of object.
-                    for (int j = workerIndex; j < aliveObjects.Count; j += workersCount)
-                    {
-                        LevelObjectRef levelObject = aliveObjects[j];
-
-                        DataManager.GameData.BeatmapObject beatmapObject = levelObject.BeatmapObject;
-
-                        // Update the object's color
-                        ColorSequence col = levelObject.ColorSequence;
-                        if (beatmapObject.objectType != DataManager.GameData.BeatmapObject.ObjectType.Empty && levelObject.ObjectMaterial != null)
-                        {
-                            col.Update(time - levelObject.StartTime);
-                            Color colValue = col.GetColor();
-                            if (beatmapObject.objectType == DataManager.GameData.BeatmapObject.ObjectType.Helper)
-                                colValue.a = 0.5f;
-
-                            if (beatmapObject.shape == 4)
-                            {
-                                levelObject.TextComponent.color = colValue;
-                            }
-                            else
-                            {
-                                levelObject.ObjectMaterial.color = colValue;
-                            }
-                        }
-
-                        // Now the transform
-                        Sequence pos = levelObject.PositionSequence;
-                        Sequence sca = levelObject.ScaleSequence;
-                        Sequence rot = levelObject.RotationSequence;
-
-                        pos.Update(time - levelObject.StartTime);
-                        sca.Update(time - levelObject.StartTime);
-                        rot.Update(time - levelObject.StartTime);
-
-                        float[] posValues = pos.GetValues();
-                        float[] scaValues = sca.GetValues();
-                        float[] rotValues = rot.GetValues();
-
-                        levelObject.BaseTransform.localPosition = new Vector3(posValues[0], posValues[1], beatmapObject.Depth * 0.1f);
-                        levelObject.BaseTransform.localScale = new Vector3(scaValues[0], scaValues[1], 1f);
-                        levelObject.BaseTransform.localEulerAngles = new Vector3(0f, 0f, rotValues[0]);
-
-                        // Update the parents' transform
-                        // I don't actually know how parent offset works so it might be broken.
-                        float posOffset = -levelObject.BeatmapObject.getParentOffset(0);
-                        float scaOffset = -levelObject.BeatmapObject.getParentOffset(1);
-                        float rotOffset = -levelObject.BeatmapObject.getParentOffset(2);
-
-                        for (int k = levelObject.Parents.Count - 1; k >= 0; k--)
-                        {
-                            ParentObjectRef parentObject = levelObject.Parents[k];
-
-                            Sequence pPos = parentObject.PositionSequence;
-                            Sequence pSca = parentObject.ScaleSequence;
-                            Sequence pRot = parentObject.RotationSequence;
-
-                            if (pPos != null)
-                            {
-                                pPos.Update(time + posOffset - parentObject.StartTime);
-                                float[] pPosValues = pPos.GetValues();
-                                parentObject.ObjectTransform.localPosition = new Vector3(pPosValues[0], pPosValues[1], parentObject.LocalDepth);
-                            }
-
-                            if (pSca != null)
-                            {
-                                pSca.Update(time + scaOffset - parentObject.StartTime);
-                                float[] pScaValues = pSca.GetValues();
-                                parentObject.ObjectTransform.localScale = new Vector3(pScaValues[0], pScaValues[1], 1f);
-                            }
-
-                            if (pRot != null)
-                            {
-                                pRot.Update(time + rotOffset - parentObject.StartTime);
-                                float[] pRotValues = pRot.GetValues();
-                                parentObject.ObjectTransform.localEulerAngles = new Vector3(0f, 0f, pRotValues[0]);
-                            }
-
-                            posOffset = -parentObject.PositionOffset;
-                            scaOffset = -parentObject.ScaleOffset;
-                            rotOffset = -parentObject.RotationOffset;
-                        }
-                    }
-                });
-            }
-
-            // Now start all the object's processing
-            ThreadManager.StartAllWorkers();
-
-            // Spinwait until everything is done
-            while (!ThreadManager.AllDone()) ;
+            UpdateObjects(time).Wait();
 
             return false; // Return false to skip original method
             // This method basically replaces the entire old pipeline and replace it with a more optimized version
+        }
+
+        private static async Task UpdateObjects(float time)
+        {
+            Task t1 = UpdateObjectSubset(time, 0, 4);
+            Task t2 = UpdateObjectSubset(time, 1, 4);
+            Task t3 = UpdateObjectSubset(time, 2, 4);
+            Task t4 = UpdateObjectSubset(time, 3, 4);
+            await Task.WhenAll(t1, t2, t3, t4);
+        }
+
+        private static Task UpdateObjectSubset(float time, int start, int step)
+        {
+            for (int i = start; i < aliveObjects.Count; i += step)
+            {
+                LevelObjectRef levelObject = aliveObjects[i];
+
+                DataManager.GameData.BeatmapObject beatmapObject = levelObject.BeatmapObject;
+
+                // Update the object's color
+                ColorSequence col = levelObject.ColorSequence;
+                if (beatmapObject.objectType != DataManager.GameData.BeatmapObject.ObjectType.Empty &&
+                    levelObject.ObjectMaterial != null)
+                {
+                    col.Update(time - levelObject.StartTime);
+                    Color colValue = col.GetColor();
+                    if (beatmapObject.objectType == DataManager.GameData.BeatmapObject.ObjectType.Helper)
+                        colValue.a = 0.5f;
+
+                    if (levelObject.TextComponent != null)
+                    {
+                        levelObject.TextComponent.color = colValue;
+                    }
+                    else
+                    {
+                        levelObject.ObjectMaterial.color = colValue;
+                    }
+                }
+
+                // Now the transform
+                Sequence pos = levelObject.PositionSequence;
+                Sequence sca = levelObject.ScaleSequence;
+                Sequence rot = levelObject.RotationSequence;
+
+                pos.Update(time - levelObject.StartTime);
+                sca.Update(time - levelObject.StartTime);
+                rot.Update(time - levelObject.StartTime);
+
+                float[] posValues = pos.GetValues();
+                float[] scaValues = sca.GetValues();
+                float[] rotValues = rot.GetValues();
+
+                levelObject.BaseTransform.localPosition =
+                    new Vector3(posValues[0], posValues[1], beatmapObject.Depth * 0.1f);
+                levelObject.BaseTransform.localScale = new Vector3(scaValues[0], scaValues[1], 1f);
+                levelObject.BaseTransform.localEulerAngles = new Vector3(0f, 0f, rotValues[0]);
+
+                // Update the parents' transform
+                // I don't actually know how parent offset works so it might be broken.
+                float posOffset = -levelObject.BeatmapObject.getParentOffset(0);
+                float scaOffset = -levelObject.BeatmapObject.getParentOffset(1);
+                float rotOffset = -levelObject.BeatmapObject.getParentOffset(2);
+
+                for (int k = levelObject.Parents.Count - 1; k >= 0; k--)
+                {
+                    ParentObjectRef parentObject = levelObject.Parents[k];
+
+                    Sequence pPos = parentObject.PositionSequence;
+                    Sequence pSca = parentObject.ScaleSequence;
+                    Sequence pRot = parentObject.RotationSequence;
+
+                    if (pPos != null)
+                    {
+                        pPos.Update(time + posOffset - parentObject.StartTime);
+                        float[] pPosValues = pPos.GetValues();
+                        parentObject.ObjectTransform.localPosition = new Vector3(pPosValues[0], pPosValues[1],
+                            parentObject.LocalDepth);
+                    }
+
+                    if (pSca != null)
+                    {
+                        pSca.Update(time + scaOffset - parentObject.StartTime);
+                        float[] pScaValues = pSca.GetValues();
+                        parentObject.ObjectTransform.localScale = new Vector3(pScaValues[0], pScaValues[1], 1f);
+                    }
+
+                    if (pRot != null)
+                    {
+                        pRot.Update(time + rotOffset - parentObject.StartTime);
+                        float[] pRotValues = pRot.GetValues();
+                        parentObject.ObjectTransform.localEulerAngles = new Vector3(0f, 0f, pRotValues[0]);
+                    }
+
+                    posOffset = -parentObject.PositionOffset;
+                    scaOffset = -parentObject.ScaleOffset;
+                    rotOffset = -parentObject.RotationOffset;
+                }
+            }
+
+            return Task.CompletedTask;
         }
 
         public static void InitLevel()
@@ -304,6 +308,8 @@ namespace Potassium
             visualTransform.localPosition = beatmapObject.origin;
             visualTransform.localScale = Vector3.one;
             visualTransform.localRotation = Quaternion.identity;
+            
+            Renderer renderer = visualTransform.GetComponent<Renderer>();
 
             if (beatmapObject.shape == 4)
             {
@@ -312,15 +318,13 @@ namespace Potassium
                 tmp.SetText(beatmapObject.text);
                 tmp.color = Color.white;
             }
-
-            Renderer renderer = visualTransform.GetComponent<Renderer>();
-
+            
             if (beatmapObject.objectType != DataManager.GameData.BeatmapObject.ObjectType.Empty)
             {
                 renderer.enabled = true;
                 renderer.material.color = new Color(0f, 0f, 0f,
                     beatmapObject.objectType != DataManager.GameData.BeatmapObject.ObjectType.Helper
-                    ? 1f : 0.5f);
+                        ? 1f : 0.5f);
             }
             else
             {
