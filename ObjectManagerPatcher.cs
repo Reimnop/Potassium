@@ -275,7 +275,7 @@ namespace Potassium
                 bool pos = beatmapObject.GetParentType(0);
                 bool sca = beatmapObject.GetParentType(1);
                 bool rot = beatmapObject.GetParentType(2);
-                parent = InitObjectParentRecursively(value, beatmapObject, parents, ref pos, ref sca, ref rot);
+                parent = InitObjectParentRecursively(value, beatmapObject, parents, pos, sca, rot);
             }
 
             Transform baseTransform = Object.Instantiate(ObjectManager.inst.objectPrefabs[beatmapObject.shape].options[beatmapObject.shapeOption], parent).transform;
@@ -361,22 +361,16 @@ namespace Potassium
             DataManager.GameData.BeatmapObject beatmapObject, 
             DataManager.GameData.BeatmapObject baseBeatmapObject,
             List<ParentObjectRef> parentObjects,
-            ref bool pos,
-            ref bool sca,
-            ref bool rot)
+            bool pos,  bool sca, bool rot)
         {
-            bool animPos = pos;
-            bool animSca = sca;
-            bool animRot = rot;
-
             Transform parent = ObjectManager.inst.objectParent.transform;
             if (BeatmapObjectsLookup.TryGetValue(beatmapObject.parent, out var value))
             {
-                pos = pos && beatmapObject.GetParentType(0);
-                sca = sca && beatmapObject.GetParentType(1);
-                rot = rot && beatmapObject.GetParentType(2);
+                bool animPos = beatmapObject.GetParentType(0);
+                bool animSca = beatmapObject.GetParentType(1);
+                bool animRot = beatmapObject.GetParentType(2);
 
-                parent = InitObjectParentRecursively(value, baseBeatmapObject, parentObjects, ref pos, ref sca, ref rot);
+                parent = InitObjectParentRecursively(value, baseBeatmapObject, parentObjects, animPos, animSca, animRot);
             }
 
             Transform currentTransform = new GameObject().transform;
@@ -398,9 +392,9 @@ namespace Potassium
             float[] rotValues = rotSeq.GetValues();
 
             // Set the transforms in advance to account for objects that spawn and despawn immediately
-            currentTransform.localPosition = animPos ? new Vector3(posValues[0], posValues[1], baseBeatmapObject.Depth * 0.0005f) : new Vector3(0f, 0f, baseBeatmapObject.Depth * 0.0005f);
-            currentTransform.localScale = animSca ? new Vector3(scaValues[0], scaValues[1], 1f) : Vector3.one;
-            currentTransform.localEulerAngles = animRot ? new Vector3(0f, 0f, rotValues[0]) : Vector3.zero;
+            currentTransform.localPosition = pos ? new Vector3(posValues[0], posValues[1], baseBeatmapObject.Depth * 0.0005f) : new Vector3(0f, 0f, baseBeatmapObject.Depth * 0.0005f);
+            currentTransform.localScale = sca ? new Vector3(scaValues[0], scaValues[1], 1f) : Vector3.one;
+            currentTransform.localEulerAngles = rot ? new Vector3(0f, 0f, rotValues[0]) : Vector3.zero;
 
             parentObjects.Add(new ParentObjectRef
             {
@@ -411,9 +405,9 @@ namespace Potassium
                 PositionOffset = beatmapObject.getParentOffset(0),
                 ScaleOffset = beatmapObject.getParentOffset(1),
                 RotationOffset = beatmapObject.getParentOffset(2),
-                PositionSequence = animPos ? posSeq : null,
-                ScaleSequence = animSca ? scaSeq : null,
-                RotationSequence = animRot ? rotSeq : null
+                PositionSequence = pos ? posSeq : null,
+                ScaleSequence = sca ? scaSeq : null,
+                RotationSequence = rot ? rotSeq : null
             });
 
             return currentTransform;
