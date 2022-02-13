@@ -10,7 +10,7 @@ namespace Potassium
         public const string
             Name = "Potassium",
             Guid = "org.reimnop.potassium",
-            Version = "1.4.0";
+            Version = "1.5.0";
 
         private void Awake()
         {
