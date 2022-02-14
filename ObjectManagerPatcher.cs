@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using BepInEx;
 using LeaderAnimator;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -420,8 +421,7 @@ namespace Potassium
         private static Sequence GetPositionSequence(DataManager.GameData.BeatmapObject beatmapObject)
         {
             List<DataManager.GameData.EventKeyframe> posEvents = beatmapObject.events[0];
-            posEvents.Sort((x, y) => x.eventTime.CompareTo(y.eventTime));
-            LeaderAnimator.Keyframe[] posKfs = new LeaderAnimator.Keyframe[posEvents.Count];
+            LeaderAnimator.Keyframe[] posKfs = new LeaderAnimator.Keyframe[posEvents.Count == 0 ? 1 : posEvents.Count];
 
             for (int i = 0; i < posEvents.Count; i++)
             {
@@ -444,6 +444,17 @@ namespace Potassium
                     Easing = stringToEasings[posEvent.curveType.Name]
                 };
             }
+            
+            if (posEvents.Count == 0)
+            {
+                Potassium.Logger.LogWarning("Found object with no keyframe. Adding a default one.");
+                posKfs[0] = new LeaderAnimator.Keyframe
+                {
+                    Time = 0.0f,
+                    Values = new []{ 0.0f, 0.0f },
+                    Easing = Easing.Linear
+                };
+            }
 
             return new Sequence(posKfs, 2);
         }
@@ -451,8 +462,7 @@ namespace Potassium
         private static Sequence GetScaleSequence(DataManager.GameData.BeatmapObject beatmapObject)
         {
             List<DataManager.GameData.EventKeyframe> scaEvents = beatmapObject.events[1];
-            scaEvents.Sort((x, y) => x.eventTime.CompareTo(y.eventTime));
-            LeaderAnimator.Keyframe[] scaKfs = new LeaderAnimator.Keyframe[scaEvents.Count];
+            LeaderAnimator.Keyframe[] scaKfs = new LeaderAnimator.Keyframe[scaEvents.Count == 0 ? 1 : scaEvents.Count];
 
             for (int i = 0; i < scaEvents.Count; i++)
             {
@@ -475,6 +485,17 @@ namespace Potassium
                     Easing = stringToEasings[scaEvent.curveType.Name]
                 };
             }
+            
+            if (scaEvents.Count == 0)
+            {
+                Potassium.Logger.LogWarning("Found object with no keyframe. Adding a default one.");
+                scaKfs[0] = new LeaderAnimator.Keyframe
+                {
+                    Time = 0.0f,
+                    Values = new []{ 2.0f, 2.0f },
+                    Easing = Easing.Linear
+                };
+            }
 
             return new Sequence(scaKfs, 2);
         }
@@ -482,8 +503,7 @@ namespace Potassium
         private static Sequence GetRotationSequence(DataManager.GameData.BeatmapObject beatmapObject)
         {
             List<DataManager.GameData.EventKeyframe> rotEvents = beatmapObject.events[2];
-            rotEvents.Sort((x, y) => x.eventTime.CompareTo(y.eventTime));
-            LeaderAnimator.Keyframe[] rotKfs = new LeaderAnimator.Keyframe[rotEvents.Count];
+            LeaderAnimator.Keyframe[] rotKfs = new LeaderAnimator.Keyframe[rotEvents.Count == 0 ? 1 : rotEvents.Count];
 
             float lastRot = 0f;
             for (int i = 0; i < rotEvents.Count; i++)
@@ -508,6 +528,17 @@ namespace Potassium
 
                 lastRot = x;
             }
+            
+            if (rotEvents.Count == 0)
+            {
+                Potassium.Logger.LogWarning("Found object with no keyframe. Adding a default one.");
+                rotKfs[0] = new LeaderAnimator.Keyframe
+                {
+                    Time = 0.0f,
+                    Values = new []{ 0.0f },
+                    Easing = Easing.Linear
+                };
+            }
 
             return new Sequence(rotKfs, 1);
         }
@@ -515,8 +546,7 @@ namespace Potassium
         private static ColorSequence GetColorSequence(DataManager.GameData.BeatmapObject beatmapObject)
         {
             List<DataManager.GameData.EventKeyframe> colEvents = beatmapObject.events[3];
-            colEvents.Sort((x, y) => x.eventTime.CompareTo(y.eventTime));
-            ColorKeyframe[] colKfs = new ColorKeyframe[colEvents.Count];
+            ColorKeyframe[] colKfs = new ColorKeyframe[colEvents.Count == 0 ? 1 : colEvents.Count];
 
             for (int i = 0; i < colKfs.Length; i++)
             {
@@ -527,6 +557,17 @@ namespace Potassium
                     Value = (int)colEvent.eventValues[0],
                     Time = colEvent.eventTime,
                     Easing = stringToEasings[colEvent.curveType.Name]
+                };
+            }
+
+            if (colEvents.Count == 0)
+            {
+                Potassium.Logger.LogWarning("Found object with no keyframe. Adding a default one.");
+                colKfs[0] = new ColorKeyframe
+                {
+                    Value = 0,
+                    Time = 0.0f,
+                    Easing = Easing.Linear
                 };
             }
 

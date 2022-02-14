@@ -23,6 +23,8 @@ namespace LeaderAnimator
         public ColorSequence(ColorKeyframe[] keyframes)
         {
             this.keyframes = keyframes;
+            
+            Array.Sort(this.keyframes, (x, y) => x.Time.CompareTo(y.Time));
         }
 
         public Color GetColor()

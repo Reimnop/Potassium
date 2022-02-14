@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 namespace LeaderAnimator
 {
@@ -42,6 +43,8 @@ namespace LeaderAnimator
             this.count = count;
 
             currentValues = new float[count];
+
+            Array.Sort(this.keyframes, (x, y) => x.Time.CompareTo(y.Time));
         }
 
         public float[] GetValues()
