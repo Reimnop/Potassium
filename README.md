@@ -1,3 +1,8 @@
+
+<img src="potassium.svg" alt="Image" height="384" />
+
+(logo by me and [enchart](https://github.com/enchart) with suggestions from the [Vitamin Games Discord](https://discord.com/invite/projectarrhythmia))
+
 # Potassium
 An optimization mod for Project Arrhythmia
 
