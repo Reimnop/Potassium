@@ -8,6 +8,8 @@ An optimization mod for Project Arrhythmia
 
 Uses [BepinEx](https://github.com/BepInEx/BepInEx/releases) modloader
 
+_Are you a developer and you're trying to understand Potassium's code? Check out Potassium's "clean code" version [Catalyst](https://github.com/Reimnop/Catalyst)_
+
 # Important!
 The mod is finished, but it most likely bugs. If you encounter any bugs, please open a new issue.
 
