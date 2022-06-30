@@ -1,3 +1,4 @@
+# A better version of this mod was released! Check out [Catalyst](https://github.com/Reimnop/Catalyst)
 
 <img src="potassium.svg" alt="Image" height="384" />
 
@@ -7,8 +8,6 @@
 An optimization mod for Project Arrhythmia
 
 Uses [BepinEx](https://github.com/BepInEx/BepInEx/releases) modloader
-
-## A better version of this mod was released! Check out [Catalyst](https://github.com/Reimnop/Catalyst)
 
 # Important!
 The mod is finished, but it most likely bugs. If you encounter any bugs, please open a new issue.
